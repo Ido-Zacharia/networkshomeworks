@@ -1,68 +1,81 @@
+#!/usr/bin/env python3
+
 import sys
 from socket import *
 
-
 DEFPORT = 1337
-DEFHOSTNAME = 'localhost'
+DEFHOSTNAME = "localhost"
+ERR_MSSG = "error: invalid input\n"
 
 
+def parse_args():
+    argc = len(sys.argv)
+    if argc == 1:
+        host = DEFHOSTNAME
+        port = DEFPORT
+    elif argc == 2:
+        host = sys.argv[1]
+        port = DEFPORT
+    elif argc == 3:
+        host = sys.argv[1]
+        if not sys.argv[2].isdigit():
+            print("port must be a number")
+            sys.exit(1)
+        port = int(sys.argv[2])
+    else:
+        print("too many args")
+        sys.exit(1)
+    return host, port
 
 
 def main():
-    host_name = DEFHOSTNAME
-    if len(sys.argv) == 2 and sys.argv[1].is_digit(): #host name is missing
-        print(f"missing host name")
-        sys.exit(1)
+    host_name, port_num = parse_args()
 
-    elif len(sys.argv) == 2 or len(sys.argv) == 3:
-        host_name = sys.argv[1]
+    sock = socket(AF_INET, SOCK_STREAM)
+    sock.connect((host_name, port_num))
 
-    elif len(sys.argv) > 3: #too many params
-        print(f"too many args")
-        sys.exit(1)
+    # read welcome banner
+    banner = sock.recv(1024).decode("utf-8")
+    print(banner, end="")
 
-    actions = ["parentheses", "lcm", "caesar", "quit"]
+    # LOGIN LOOP
+    logged_in = False
+    while not logged_in:
+        user_name = input("")
+        password = input("")
 
-    port_num = DEFPORT if len(sys.argv) != 3 else int(sys.argv[2])
+        msg = f"{user_name}\n{password}\n"
+        sock.sendall(msg.encode())
 
-    curr_action = "login"
+        resp = sock.recv(1024).decode("utf-8")
+        print(resp, end="")
+        logged_in = True
 
-    listeningSocket = socket(AF_INET, SOCK_STREAM) #AF_INET <-> IPv4 , SOCK_STREAM <-> TCP
+    # COMMAND LOOP
+    while True:
+        req = input("").strip()
+        if not req:
+            continue
 
-    listeningSocket.connect((host_name, port_num))
+        # server expects a line ending in '\n'
+        line = req + "\n"
+        sock.sendall(line.encode())
 
-    while curr_action != "quit":
-        if curr_action == "login":
-            user_name = input("Enter your username: ")
-            password = input("Enter your password: ")
-            msg = f"User: {user_name}\n Password: {password}\n"
-            listeningSocket.sendall(msg.encode())
-            data = listeningSocket.recv(1024)
-            if data.decode() == "Hi {user_name}, good to see you.\n":
-                curr_action = "send request"
-                continue
-        curr_action = input("Enter your request:")
-        if curr_action in actions:
-            match curr_action:
-                case "parentheses":
-                    expr = input("Enter your expression:")
-                    msg = f"parentheses: {expr}\n"
-                case "lcm":
-                    nums = input("Enter your numbers (space separated):")
-                    msg = f"lcm: {nums}\n"
-                case "caesar":
-                    shift = input("Enter shift value:")
-                    text = input("Enter text:")
-                    msg = f"caesar: {text} {shift}\n"
-                case "quit":
-                    msg = "quit\n"
-            listeningSocket.sendall(msg.encode())
-            if curr_action == "quit":
-                break
-            data = listeningSocket.recv(1024)
+        if req == "quit":
+            break
+
+        data = sock.recv(1024)
+        if not data:
+            print("Server closed the connection.")
+            break
+
+        answer = data.decode("utf-8")
+        print(answer, end="")
+
             
-            print("Received from server:", data.decode())
-        else:
-            print("Invalid action. Please try again.")
-    
-    listeningSocket.close()
+
+    sock.close()
+
+
+if __name__ == "__main__":
+    main()
