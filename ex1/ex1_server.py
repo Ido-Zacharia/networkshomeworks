@@ -1,5 +1,3 @@
-#!/usr/bin/env python3
-
 import sys
 import math
 import select
@@ -25,6 +23,7 @@ def load_users(path):
                 continue
             username, password = parts
             users[username] = password
+    print(users)
     return users
 
 

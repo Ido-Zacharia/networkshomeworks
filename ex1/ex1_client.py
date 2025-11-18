@@ -89,7 +89,7 @@ def parse_args():
     else:
         print("too many args")
         sys.exit(1)
-    if not is_valid_host(host_name):
+    if not is_valid_host(host): # Either IP or a name
         sys.exit(-1)
     return host, port
 
