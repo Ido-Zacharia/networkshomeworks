@@ -3,10 +3,10 @@ import math
 import select
 from socket import *
 
-BUFFER_SIZE = 2 ** 12
+BUFFER_SIZE = 2 ** 15
 DEFPORT = 1337
-ERR_MSSG = b"error: invalid input\n"
-
+ERR_MSSG = b"error: invalid input, log out!\n"
+ERR_MSSG_CAESAR = b"error: invalid input\n"
 
 # ---------- helpers ----------
 
@@ -23,7 +23,6 @@ def load_users(path):
                 continue
             username, password = parts
             users[username] = password
-    print(users)
     return users
 
 
@@ -145,6 +144,7 @@ def handle_line(curr_client, sock, line, users, clients):
 
         if balanced is ERR_MSSG:
             sock.sendall(ERR_MSSG)
+            close_client(sock, clients)
             return
 
         answer = "yes" if balanced else "no"
@@ -158,12 +158,14 @@ def handle_line(curr_client, sock, line, users, clients):
         parts = rest.split()
         if len(parts) != 2:
             sock.sendall(ERR_MSSG)
+            close_client(sock, clients)
             return
         try:
             x = int(parts[0])
             y = int(parts[1])
         except ValueError:
             sock.sendall(ERR_MSSG)
+            close_client(sock, clients)
             return
 
         res = lcm_(x, y)
@@ -177,13 +179,15 @@ def handle_line(curr_client, sock, line, users, clients):
         try:
             text_part, shift_str = rest.rsplit(" ", 1)
             shift = int(shift_str)
+
         except ValueError:
             sock.sendall(ERR_MSSG)
+            close_client(sock, clients)
             return
 
         cipher = caesar_cipher(text_part, shift)
         if cipher is ERR_MSSG:
-            sock.sendall(ERR_MSSG)
+            sock.sendall(ERR_MSSG_CAESAR)
             return
 
         msg = f"the ciphertext is: {cipher}\n"
@@ -197,7 +201,7 @@ def handle_line(curr_client, sock, line, users, clients):
 
     # anything else
     sock.sendall(ERR_MSSG)
-
+    close_client(sock, clients)
 
 # ---------- main ----------
 

@@ -187,6 +187,10 @@ def main():
         answer = data.decode("utf-8")
         print(answer, end="")
 
+        # If server sent error, it will close the connection
+        if answer.startswith("error: invalid input, log out!"):
+            break
+
     sock.close()
 
 
